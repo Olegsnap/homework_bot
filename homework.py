@@ -45,7 +45,7 @@ logger.addHandler(handler)
 
 
 def check_tokens():
-    """Проверяем что необходимые перменные доступны"""
+    """Проверяем что необходимые перменные доступны."""
     for token in [
         PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
     ]:
@@ -58,7 +58,7 @@ def check_tokens():
 
 
 def send_message(bot, message):
-    """Отправляет сообщения в чат. Чат определяется по TELEGRAM_CHAT_ID"""
+    """Отправляет сообщения в чат. Чат определяется по TELEGRAM_CHAT_ID."""
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
         logger.debug(
@@ -69,7 +69,7 @@ def send_message(bot, message):
 
 
 def get_api_answer(timestamp):
-    """Создает запрос к эндпоинту и возвращает объект домашней работы"""
+    """Создает запрос к эндпоинту и возвращает объект домашней работы."""
     params = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
@@ -85,7 +85,7 @@ def get_api_answer(timestamp):
 
 
 def check_response(response):
-    """Проверяет ответ API на соответствие требованиям"""
+    """Проверяет ответ API на соответствие требованиям."""
     if type(response) is not dict:
         error_message = 'Необрабатываемый ответ API.'
         logger.error(error_message)
@@ -109,7 +109,7 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """Получает статус конкретной домашней работы"""
+    """Получает статус конкретной домашней работы."""
     if 'homework_name' not in homework:
         error_message = 'Ключ homework_name отсутствует.'
         logger.error(error_message)
