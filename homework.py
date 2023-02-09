@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 import requests
@@ -120,11 +121,16 @@ def main():
         logger.critical(error_message)
         raise sys.exit()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
+    now = datetime.datetime.now()
+    send_message(
+        bot,
+        f'Я начал свою работу: {now.strftime("%d-%m-%Y %H:%M")}')
     timestamp = int(time.time())
     while True:
         try:
             response = get_api_answer(timestamp)
             homework = check_response(response)
+            print(response)
             if homework:
                 message = parse_status(homework)
                 if message:
