@@ -1,4 +1,3 @@
-import datetime
 import logging
 import os
 import requests
@@ -114,6 +113,10 @@ def parse_status(homework):
         return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
+def worker(response):
+    return response
+
+
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
@@ -121,21 +124,17 @@ def main():
         logger.critical(error_message)
         raise sys.exit()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    now = datetime.datetime.now()
-    send_message(
-        bot,
-        f'Я начал свою работу: {now.strftime("%d-%m-%Y %H:%M")}')
     timestamp = int(time.time())
     while True:
         try:
             response = get_api_answer(timestamp)
             homework = check_response(response)
-            print(response)
             if homework:
                 message = parse_status(homework)
                 if message:
                     send_message(bot, message)
             logger.info('Повторение запроса через 10 мин.')
+            worker(response)
             time.sleep(RETRY_PERIOD)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
