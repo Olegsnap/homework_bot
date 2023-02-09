@@ -6,7 +6,7 @@ import telegram
 import time
 from http import HTTPStatus
 from dotenv import load_dotenv
-from exceptions import EndpointStatusError, StatusError
+from exceptions import EndpointStatusError, EndpointNotAnswer, StatusError
 
 
 load_dotenv()
@@ -29,11 +29,6 @@ HOMEWORK_VERDICTS = {
 }
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    filename='program.log',
-    format='%(levelname)s, %(message)s'
-)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler(sys.stdout)
@@ -46,15 +41,7 @@ logger.addHandler(handler)
 
 def check_tokens():
     """Проверяем что необходимые перменные доступны."""
-    for token in [
-        PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
-    ]:
-        if not token:
-            logger.critical(
-                'Программа остановлена. Отсуствует переменная окружения.'
-            )
-            raise SystemExit
-    return True
+    return all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
 
 
 def send_message(bot, message):
@@ -73,7 +60,6 @@ def get_api_answer(timestamp):
     params = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    finally:
         if response.status_code != HTTPStatus.OK:
             message = (
                 f'Ресурс {ENDPOINT} недоступен. '
@@ -81,12 +67,14 @@ def get_api_answer(timestamp):
             )
             logger.error(message)
             raise EndpointStatusError
-    return response.json()
+        return response.json()
+    except Exception as error:
+        raise EndpointNotAnswer(error)
 
 
 def check_response(response):
     """Проверяет ответ API на соответствие требованиям."""
-    if type(response) is not dict:
+    if not isinstance(response, dict):
         error_message = 'Необрабатываемый ответ API.'
         logger.error(error_message)
         raise TypeError(error_message)
@@ -94,17 +82,13 @@ def check_response(response):
         error_message = 'Ошибка в ответе API, ключ homeworks не найден.'
         logger.error(error_message)
         raise KeyError(error_message)
-    if type(response['homeworks']) is not list:
+    if not isinstance(response['homeworks'], list):
         error_message = 'Неверные данные.'
         logger.error(error_message)
         raise TypeError(error_message)
     if not response['homeworks']:
         logger.info('Словарь homeworks пуст.')
         return {}
-    if response['homeworks'][0].get('status') not in HOMEWORK_VERDICTS:
-        error_message = 'Не определен статус домашней работы!'
-        logger.error(error_message)
-        raise StatusError
     return response['homeworks'][0]
 
 
@@ -117,13 +101,13 @@ def parse_status(homework):
     if 'status' not in homework:
         error_message = 'Ключ status отсутствует.'
         logger.error(error_message)
-        raise StatusError
+        raise StatusError()
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
     if homework_status not in HOMEWORK_VERDICTS:
         error_message = ('Не определен статус домашней работы!')
         logger.error(error_message)
-        raise StatusError
+        raise StatusError()
     else:
         verdict = HOMEWORK_VERDICTS[homework_status]
         return f'Изменился статус проверки работы "{homework_name}". {verdict}'
@@ -131,7 +115,10 @@ def parse_status(homework):
 
 def main():
     """Основная логика работы бота."""
-    check_tokens()
+    if not check_tokens():
+        error_message = 'Отсутсвуют необходимые переменные'
+        logger.critical(error_message)
+        raise sys.exit()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
     while True:
@@ -152,4 +139,9 @@ def main():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        level=logging.INFO,
+        filename='program.log',
+        format='%(levelname)s, %(message)s'
+    )
     main()
